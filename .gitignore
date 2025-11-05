@@ -106,4 +106,4 @@ data/
 models/
 
 # Gemini files
-.aipm_files/
+# .aipm_files/

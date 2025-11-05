@@ -1,0 +1,87 @@
+---
+**日時:** 2025-11-06
+**担当タスク:** マイルストーン1: 基礎研究とベースラインモデルの構築 (詳細ログ)
+
+**サマリー:**
+マイルストーン1の全タスクを完了。開発環境のセットアップ、データ前処理、ベースラインとなる単純オートエンコーダの実装・学習・評価までを行った。最終的なモデルの精度は約84%となり、次のステップへの強固な土台を築いた。
+
+---
+
+**詳細な作業の時系列記録:**
+
+**1. プロジェクト初期状態の確認 (01:10)**
+*   **状況:** プロジェクト関連ファイル (`Project_Overview.md`, `Project_Plan.md`, `Work_Log.md`) を読み込み、内容を把握。`Work_Log.md`が空であり、プロジェクトが未着手であることを確認した。
+*   **判断:** 計画書に基づき、マイルストーン1から着手することを決定。
+
+**2. 開発環境の調査とデータセットの準備 (01:12 - 01:18)**
+*   **アクション:** `requirements.txt`の内容を確認し、環境を把握。
+    *   **コマンド:** `read_file(absolute_path="/home/temmie0232/u/lab/2025_Graduation_Research/requirements.txt")`
+    *   **観察:** 非常に多くのライブラリが記載されていた。`pip freeze`で生成されたものと推測。これは依存関係を過度に複雑にし、将来的なエラーの原因となりうると判断。
+*   **アクション:** NSL-KDDデータセットをダウンロードするため、Kaggleでデータセットを検索。
+    *   **コマンド:** `kaggle datasets list -s NSL-KDD` (at `/home/temmie0232/u/lab/2025_Graduation_Research/data`)
+    *   **判断:** 最もダウンロード数が多く評価の高い `hassan06/nslkdd` を使用することを決定。
+*   **アクション:** データセットを`data/`ディレクトリにダウンロードし、展開。
+    *   **コマンド:** `kaggle datasets download -d hassan06/nslkdd`
+    *   **コマンド:** `unzip nslkdd.zip`
+    *   **結果:** `KDDTrain+.txt` および `KDDTest+.txt` などのファイルが展開されたことを確認。
+
+**3. データ読み込みと環境問題の特定 (01:18 - 01:22)**
+*   **アクション:** データセットの列名がファイルに含まれていないため、ウェブで検索。
+    *   **コマンド:** `google_web_search(query="NSL-KDD dataset column names")`
+    *   **結果:** 43個の列名リストを特定。
+*   **アクション:** `src/preprocess.py` を作成。まずはデータを読み込んで表示するだけの簡単な内容で実装。
+*   **アクション:** スクリプトを初回実行。
+    *   **コマンド:** `python3 preprocess.py` (at `.../src`)
+    *   **問題発生:** `ModuleNotFoundError: No module named 'pandas'` が発生。
+*   **トラブルシューティング:**
+    1.  **仮説1:** 仮想環境が有効化されていない。
+    2.  **試行1:** `source ../.venv/bin/activate && python3 preprocess.py` を実行するも、同じエラー。`source`コマンドの仕様によるものと判断。
+    3.  **試行2:** `../.venv/bin/python3 preprocess.py` で仮想環境のPythonを直接指定するも、同じエラー。
+    4.  **仮説2:** ライブラリが実際にインストールされていない可能性がある。
+    5.  **検証:** `../.venv/bin/pip3 show pandas` を実行。
+    6.  **原因確定:** `Package(s) not found: pandas` の結果を得て、ライブラリが未インストールであることを確定。
+*   **アクション:** `requirements.txt`からのインストールを試行。
+    *   **コマンド:** `../.venv/bin/pip3 install -r ../requirements.txt`
+    *   **問題発生:** `ERROR: No matching distribution found for cliapp==1.20180812.1`。`requirements.txt`の内容自体が古く、現在の環境と互換性がないと断定。
+
+**4. 開発環境の再構築とデータ前処理 (01:22)**
+*   **アクション:** ユーザーに状況を報告し、最小限のクリーンな`requirements.txt`を再作成する提案を行い、承認を得る。
+*   **アクション:** `requirements.txt`を必須ライブラリ (`pandas`, `numpy`, `scikit-learn`, `torch`, `matplotlib`, `kaggle`) のみで上書き。
+*   **アクション:** 新しい`requirements.txt`でライブラリをインストール。
+    *   **コマンド:** `../.venv/bin/pip3 install -r ../requirements.txt`
+    *   **結果:** インストール成功。
+*   **アクション:** `preprocess.py`を拡張。One-Hotエンコーディング、Min-Maxスケーリング、ラベルのバイナリ化、前処理済みファイルの保存機能を追加実装。
+*   **アクション:** 拡張したスクリプトを実行。
+    *   **コマンド:** `../.venv/bin/python3 preprocess.py`
+    *   **結果:** 正常に完了。`X_train.csv`, `y_train.csv`, `X_test.csv`, `y_test.csv`が`data/`に生成されたことを確認。
+
+**5. ベースラインモデルの実装・学習・評価 (01:22)**
+*   **アクション:** `models`ディレクトリを作成。
+*   **アクション:** `src/train_baseline_ae.py`を作成。正常データのみで学習するロジックを実装。
+    *   **モデルアーキテクチャ:** Encoder(119 -> 64 -> 32), Decoder(32 -> 64 -> 119)
+    *   **ハイパーパラメータ:** `EPOCHS=10`, `BATCH_SIZE=64`, `LEARNING_RATE=0.001`, `OPTIMIZER=Adam`, `LOSS_FUNCTION=MSELoss`
+*   **アクション:** 学習スクリプトを実行。
+    *   **コマンド:** `../.venv/bin/python3 train_baseline_ae.py`
+    *   **結果:** 学習成功。学習済みモデル `models/baseline_ae.pth` を保存。
+*   **アクション:** `src/evaluate_baseline_ae.py`を作成。
+*   **アクション:** 評価スクリプトを実行。
+    *   **問題発生:** `ModuleNotFoundError: No module named 'seaborn'`
+    *   **解決策:** `requirements.txt`に`seaborn`を追記し、`pip install`を実行して即時解決。
+*   **アクション:** 評価スクリプトを再実行。
+    *   **コマンド:** `../.venv/bin/python3 evaluate_baseline_ae.py`
+    *   **結果:** 評価成功。コンソールに評価指標を出力し、可視化グラフ2点 (`reconstruction_error_distribution.png`, `confusion_matrix.png`) を`models/`に保存。
+
+**最終評価結果:**
+*   **Accuracy:** 0.8434
+*   **Anomaly (Recall):** 0.76
+*   **Normal (Recall):** 0.95
+
+**考察:**
+*   **成功した点:**
+    *   初期段階で環境の問題を特定・解決し、クリーンで再現性の高い開発基盤を確立できた点が最大の成果。
+    *   計画通りにデータ処理からモデル評価までを一気通貫で実行し、ベースライン性能を84%という具体的な数値で示すことができた。
+*   **課題と次のステップへの接続:**
+    *   ベースラインモデルは「正常」の再現率(Recall)は高い(0.95)が、「異常」の再現率は0.76に留まった。これはAEが正常パターンを学習し、それから外れたものを異常と判断する基本的な動作が機能している証拠だが、同時にAEだけでは見逃される異常が24%存在することを示している。
+    *   この結果は、本研究の目的である「ハイブリッドモデルによる精度向上」の必要性を明確に裏付けている。
+    *   次のマイルストーン2で実装する「学習識別再構成」が、今回見逃された異常をどれだけ捉えられるようになるか、比較・分析することが重要となる。
+---
