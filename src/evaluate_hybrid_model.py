@@ -99,6 +99,26 @@ score_b = svm_clf.predict_proba(X_test_latent)[:, 0]
 score_a_norm = (score_a - score_a.min()) / (score_a.max() - score_a.min())
 score_b_norm = (score_b - score_b.min()) / (score_b.max() - score_b.min())
 
+# --- Evaluate AE Only (Score A) ---
+print("\n--- Evaluating AE Only (Reconstruction Error) ---")
+best_f1_ae = 0
+best_threshold_ae = 0
+thresholds = np.linspace(0, 1, 101)
+
+for thresh in thresholds:
+    y_pred_ae = (score_a_norm > thresh).astype(int)
+    f1_ae = f1_score(y_test, y_pred_ae)
+    if f1_ae > best_f1_ae:
+        best_f1_ae = f1_ae
+        best_threshold_ae = thresh
+
+y_pred_ae_opt = (score_a_norm > best_threshold_ae).astype(int)
+print(f"Best Threshold (AE): {best_threshold_ae:.4f}")
+print(f"Accuracy (AE):  {accuracy_score(y_test, y_pred_ae_opt):.4f}")
+print(f"Precision (AE): {precision_score(y_test, y_pred_ae_opt):.4f}")
+print(f"Recall (AE):    {recall_score(y_test, y_pred_ae_opt):.4f}")
+print(f"F1 Score (AE):  {f1_score(y_test, y_pred_ae_opt):.4f}")
+
 # Combine scores
 # Strategy: Weighted Average (0.5 * A + 0.5 * B)
 # Or logical OR: if either is high, it's an anomaly.
