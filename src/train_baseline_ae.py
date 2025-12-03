@@ -4,18 +4,23 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import os
+import argparse
 
 # --- Configuration ---
+parser = argparse.ArgumentParser(description='Train Baseline AE')
+parser.add_argument('--hidden_dim', type=int, default=32, help='Dimension of the latent space')
+args = parser.parse_args()
+
 DATA_DIR = '../data/'
 MODEL_DIR = '../models/'
 INPUT_FILE_X = 'X_train.csv'
 INPUT_FILE_y = 'y_train.csv'
-MODEL_SAVE_PATH = os.path.join(MODEL_DIR, 'baseline_ae.pth')
+MODEL_SAVE_PATH = os.path.join(MODEL_DIR, f'baseline_ae_{args.hidden_dim}.pth')
 
 # Hyperparameters
 INPUT_DIM = 119 # From the shape of preprocessed data
 HIDDEN_DIM_1 = 64
-HIDDEN_DIM_2 = 32 # Latent space
+HIDDEN_DIM_2 = args.hidden_dim # Latent space
 EPOCHS = 10
 BATCH_SIZE = 64
 LEARNING_RATE = 0.001
@@ -62,28 +67,29 @@ class Autoencoder(nn.Module):
         return x
 
 # --- 5. Training Loop ---
-model = Autoencoder()
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+if __name__ == "__main__":
+    model = Autoencoder()
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-print("\nStarting training...")
-for epoch in range(EPOCHS):
-    epoch_loss = 0
-    for data in train_loader:
-        inputs, _ = data
-        # Forward pass
-        outputs = model(inputs)
-        loss = criterion(outputs, inputs)
-        # Backward pass and optimization
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        epoch_loss += loss.item()
-    
-    print(f'Epoch [{epoch+1}/{EPOCHS}], Loss: {epoch_loss/len(train_loader):.6f}')
+    print("\nStarting training...")
+    for epoch in range(EPOCHS):
+        epoch_loss = 0
+        for data in train_loader:
+            inputs, _ = data
+            # Forward pass
+            outputs = model(inputs)
+            loss = criterion(outputs, inputs)
+            # Backward pass and optimization
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+        
+        print(f'Epoch [{epoch+1}/{EPOCHS}], Loss: {epoch_loss/len(train_loader):.6f}')
 
-# --- 6. Save the Model ---
-print("\nTraining complete. Saving model...")
-os.makedirs(MODEL_DIR, exist_ok=True)
-torch.save(model.state_dict(), MODEL_SAVE_PATH)
-print(f"Model saved to {MODEL_SAVE_PATH}")
+    # --- 6. Save the Model ---
+    print("\nTraining complete. Saving model...")
+    os.makedirs(MODEL_DIR, exist_ok=True)
+    torch.save(model.state_dict(), MODEL_SAVE_PATH)
+    print(f"Model saved to {MODEL_SAVE_PATH}")
